@@ -1,0 +1,47 @@
+目录
+/mnt/c/Users/XZQ/Desktop/NCBI/Plant communications_RNA_seq/rna-seq-project/sra/
+
+
+# 下载 sra-tools 安装包
+cd ~
+wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-ubuntu64.tar.gz
+
+# 解压
+tar zxvf sratoolkit.current-ubuntu64.tar.gz
+
+# 自动检测解压后的文件夹名（一般为 sratoolkit.3.2.1-ubuntu64）
+TOOLKIT_DIR=$(find ~ -maxdepth 1 -type d -name "sratoolkit.*-ubuntu64" | head -n 1)
+
+# 加入环境变量
+echo "export PATH=\$PATH:$TOOLKIT_DIR/bin" >> ~/.bashrc
+source ~/.bashrc
+
+# 给整个 bin 目录添加执行权限
+chmod +x $TOOLKIT_DIR/bin/*
+
+# 验证 prefetch 是否安装成功
+prefetch -V
+
+
+
+以上第一遍操作结束以后就不用管了
+
+
+
+
+# 切换到你的项目 sra 目录
+cd "/mnt/c/Users/XZQ/Desktop/NCBI/Plant communications_RNA_seq/rna-seq-project/sra"
+
+# 检查是否有 SRR_Acc_List.txt
+if [ ! -f "SRR_Acc_List.txt" ]; then echo "❌ 未找到 SRR_Acc_List.txt 文件"; exit 1; fi
+
+
+
+NCBI GEO database搜索项目名	PRJNA1043393，SRA Run Selector,下载total Accesion list文件SRR_Acc_List.txt
+
+
+
+用HTTP下载SRA文件fastq格式
+~/sratoolkit.3.2.1-ubuntu64/bin/prefetch --option-file SRR_Acc_List.txt --output-directory "/mnt/c/Users/XZQ/Desktop/NCBI/Plant communications_RNA_seq/rna-seq-project/sra"
+
+
