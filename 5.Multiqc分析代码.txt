@@ -1,0 +1,22 @@
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+
+conda activate rna-seq
+
+multiqc
+
+conda install multiqc
+
+y
+
+
+which multiqc
+
+multiqc --help
+
+multiqc qc
+
+打开multiqc_reports文件，查看结果
+
+multiqc logFiles
+
+打开multiqc_report_1.html文件，查看结果

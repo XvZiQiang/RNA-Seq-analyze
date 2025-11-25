@@ -1,0 +1,59 @@
+#!/bin/bash
+# fastp 过滤，直接在 qc 文件夹里操作
+# 假设你的原始 fastq 都在 ./fastq/
+
+
+conda install -c bioconda fastp（已安装就不用了）
+which fastp
+
+
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+
+mkdir -p qc/cleanFq        # 创建输出目录
+mkdir -p logFiles           # 日志目录
+
+for file in fastq/*_1.fastq; do
+    # 提取样本名称
+    sample=$(basename "$file" _1.fastq)
+
+    # 运行 fastp 过滤双端文件
+    fastp \
+        -i "fastq/${sample}_1.fastq" \
+        -I "fastq/${sample}_2.fastq" \
+        -o "qc/cleanFq/${sample}_1.clean.fq.gz" \
+        -O "qc/cleanFq/${sample}_2.clean.fq.gz" \
+        -j "qc/cleanFq/${sample}.filtered.fastp.json" \
+        -h "qc/cleanFq/${sample}.filtered.fastp.html" \
+        -w 16 \
+        -q 20 \
+        -l 50 \
+        -u 50
+done 2>&1 | tee logFiles/trim_fastp.log
+
+
+
+每行解析
+
+mkdir -p qc/cleanFq → 创建过滤后的 fastq 输出目录
+mkdir -p logFiles → 创建日志文件目录
+for file in fastq/*_1.fastq; do → 遍历所有双端测序的 _1.fastq 文件
+sample=$(basename "$file" _1.fastq) → 获取样本名（去掉 _1.fastq）
+fastp -i ... -I ... → 输入双端文件
+-o ... -O ... → 输出过滤后的双端文件
+-j ... -h ... → 输出 fastp 的 JSON 和 HTML 过滤报告
+-w 16 → 使用 16 线程加速
+-q 20 → 低于 Q20 的碱基会被过滤
+-l 50 → 最短长度 50 bp
+-u 50 → 最大允许 N 的百分比 50%
+done 2>&1 | tee logFiles/trim_fastp.log → 同时打印并保存日志
+
+
+
+
+对clean fastq文件进行统计分析，过滤前后差别
+python qc/fastp2excel.py qc/cleanFq/ -o qc/ -x cleanFq_basic_stats.xlsx
+
+对clean fastq文件复制到fastq文件夹
+
+
+

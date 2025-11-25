@@ -1,0 +1,64 @@
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+
+# 安装两个 UCSC 工具（只需一次）
+conda install -c bioconda ucsc-gtftogenepred -y
+conda install -c bioconda ucsc-genepredtobed -y
+
+which gtfToGenePred
+which genePredToBed
+
+# 将 GTF 转换为 BED 格式
+gtfToGenePred reference/Arabidopsis_thaliana.TAIR10.62.gtf reference/TAIR10.genePred
+
+# 将 genePred 转换为 BED 格式
+genePredToBed reference/TAIR10.genePred reference/TAIR10_fmt12.bed
+
+转换完成后，你的 reference/ 文件夹应该包含：TAIR10.genePred和TAIR10_fmt12.bed
+
+
+# 激活环境
+conda activate rna-seq
+
+
+
+
+# 一条命令创建环境、安装 pysam 并激活环境；3.12环境安装/3.13不支持安装 pysam
+conda create -n rna_seq_py312 python=3.12 -y && \
+conda activate rna_seq_py312 && \
+conda install -c bioconda pysam -y
+
+无法使用which pysam,因为他是python里的工具
+
+# 创建输出目录
+mkdir -p geneBody_cov
+
+
+关闭Ubuntu
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+conda activate rna-seq
+
+# 运行脚本（你脚本就在当前目录）所有bam文件的基因密度覆盖合并，单线程-慢
+python get_geneBody_coverage.py \
+    -i $PWD/bam \
+    -r $PWD/reference/TAIR10_fmt12.bed \
+    -o $PWD/geneBody_cov \
+
+
+done
+
+一个Python分析一个文件对应一个线程
+-i $PWD/bam	指定输入目录（你的比对结果 BAM 文件所在目录）。	
+-r $PWD/reference/TAIR10_fmt12.bed	指定参考基因的 BED 文件，用于定义基因体的起止位置。	
+-o $PWD/geneBody_cov	指定输出目录，保存统计和可视化结果。
+到这结束
+
+
+sudo apt-get install -y fonts-dejavu（不会报错下面的了，安装一次即可）
+
+findfont: Font family 'Arial' not found.
+
+
+
+
+
+

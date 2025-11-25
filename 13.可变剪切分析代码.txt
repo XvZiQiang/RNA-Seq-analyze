@@ -1,0 +1,267 @@
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+或cd "/mnt/c/Users/XZQ/Desktop/NCBI/Plant communications_RNA_seq/rna-seq-project"
+
+
+mkdir -p alternative_differential_splicing/outDir
+mkdir -p alternative_differential_splicing/tmpDir
+mkdir -p alternative_differential_splicing/sashimiplotDir
+mkdir -p alternative_differential_splicing/bamDir
+
+outDir — rMATS 输出结果
+tmpDir — rMATS 中间文件
+sashimiplotDir — sashimi plot 输出
+bamDir — 放置 BAM 文件
+
+conda activate rna-seq
+
+
+排序 BAM 是必须步骤（rMATS、featureCounts、StringTie 均要求 sorted BAM）
+不是.bam文件，是sorted.bam文件
+
+
+获得sorted.bam.bai索引文件
+for file in bam/*sorted.bam; do
+    samtools index -@ 24 "$file"
+done
+这是 Samtools 的子命令，用于为 BAM 文件生成索引文件。索引文件通常以 .bai 为后缀
+
+
+放弃软连接，直接复制粘贴*sorted.bam和*sorted.bam.bai文件到bamDir文件夹，GTF文件到alternative_differential_splicing路径下
+
+软链接 GTF + BAM 文件（我试过这个，后面会报错）
+ln -s $PWD/bam/*sorted.bam alternative_differential_splicing/bamDir
+ln -s $PWD/bam/*sorted.bam.bai alternative_differential_splicing/bamDir
+
+ln -s $PWD/reference/Arabidopsis_thaliana.TAIR10.62.gtf alternative_differential_splicing/TAIR10.gtf
+
+创建sorted.bam 和 sorted.bam.bai 的软链接，不需要复制大文件
+rMATS 会自动读取 TAIR10.gtf
+
+
+
+
+
+
+
+
+确认工作目录
+cd alternative_differential_splicing
+
+# 生成对照和处理组的bam文件列表
+find bamDir/ -name 'WT*.sorted.bam' | sort | paste -sd ',' > $PWD/b1.txt
+find bamDir/ -name 'cpl2-2*.sorted.bam' | sort | paste -sd ',' > $PWD/b2.txt
+
+find		能自动找出符合命名规则的文件
+| sort		对文件名排序，使顺序稳定一致。
+
+| paste -sd ','   将多行内容合并成一行，并用逗号分隔
+
+举例：
+输入（多行）：
+bamDir/WT_repl1.sorted.bam
+bamDir/WT_repl2.sorted.bam
+bamDir/WT_repl3.sorted.bam
+输出（单行）：
+bamDir/WT_repl1.sorted.bam,bamDir/WT_repl2.sorted.bam,bamDir/WT_repl3.sorted.bam
+
+> b1.txt	将输出保存为 b1.txt 文件。
+
+最终得到两个关键文件：b1.txt和b2.txt
+
+
+
+
+可以检查文件
+ls
+cat b1.txt
+cat b2.txt
+
+要求：
+不能多行
+不能空格
+必须是逗号分隔
+必须绝对路径（软链接也算绝对路径）
+样本顺序是 biological replicate 顺序（1→2→3）
+
+
+
+确认工作目录
+cd alternative_differential_splicing
+
+
+下载 rMATS 和 rmats2sashimiplot 的 Singularity 镜像
+wget -O rmats.sif https://depot.galaxyproject.org/singularity/rmats%3A4.2.0--py39h72fbca4_0
+wget -O rmats2sashimiplot.sif https://depot.galaxyproject.org/singularity/rmats2sashimiplot%3A3.0.0--py39h6a678da_0
+
+两个文件生成后，你目录下会出现：
+rmats.sif
+rmats2sashimiplot.sif
+
+
+
+
+
+安装Apptainer依赖
+sudo apt update && sudo apt install -y \
+    build-essential \
+    libseccomp-dev \
+    pkg-config \
+    squashfs-tools \
+    cryptsetup \
+    git \
+    uuid-dev \
+    libgpgme-dev \
+    golang-go
+
+	
+下载 Apptainer 官方安装包
+wget https://github.com/apptainer/apptainer/releases/download/v1.3.2/apptainer_1.3.2_amd64.deb
+
+安装
+sudo apt install ./apptainer_1.3.2_amd64.deb
+
+测试是否安装成功：
+apptainer --version
+
+
+
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+确认工作目录
+cd alternative_differential_splicing
+
+开始运行 rMATS ..."进行可变剪切分析
+
+apptainer exec rmats.sif \
+    /usr/local/rMATS/rmats.py \
+    --b1 b1.txt \
+    --b2 b2.txt \
+    --gtf TAIR10.gtf \
+    --od outDir \
+    --tmp tmpDir \
+    -t paired \
+    --readLength 150 \
+    --libType fr-unstranded \
+    --nthread 24
+
+apptainer
+这是 Singularity 的新名字（Apptainer 是 Singularity 的开源继承版本）。
+用于在 Linux 下运行容器镜像（.sif 文件）而不需要安装所有依赖环境。
+
+exec
+表示“在容器中执行命令”。
+格式：apptainer exec <镜像文件> <命令>
+执行后，这条命令会在容器隔离环境里运行，使用容器自带的软件环境和依赖。
+
+rmats.sif
+你下载的 rMATS 容器镜像，里面已经包含 Python、rMATS 和所需的依赖库。
+/usr/local/rMATS/rmats.py
+容器内 rMATS 的主程序脚本路径。
+注意：这个路径是镜像内部的，和你本地路径无关。
+
+
+
+
+
+参数						解释
+--b1 b1.txt				WT 组（对照组）
+--b2 b2.txt				cpl2-2 组（处理组）
+--gtf TAIR10.gtf		转录注释文件
+--od outDir				输出目录
+--tmp tmpDir			中间文件目录
+-t paired				双端测序
+--readLength 150		read 长度（你的数据是 150bp）
+--libType fr-unstranded	文库类型：非链特异性
+--nthread 24			开 24 线程
+
+
+
+
+
+
+
+
+
+
+
+
+# 创建分组文件
+nano group.gf
+###
+WT: 1-3
+cpl2-2: 4-6
+
+
+cat group.gf
+
+
+
+
+gene:AT5G49330	MYB111
+gene:AT2G16700	ADF5
+
+提取指定基因的事件文件
+{ head -n 1 outDir/SE.MATS.JC.txt; grep -w "gene:AT5G49330" outDir/SE.MATS.JC.txt; } > MYB111.SE.MATS.JC.txt
+{ head -n 1 outDir/RI.MATS.JC.txt; grep -w "gene:AT2G16700" outDir/RI.MATS.JC.txt; } > ADF5.RI.MATS.JC.txt
+
+
+{ ... ; ...; } > MYB111.SE.MATS.JC.txt
+将表头和匹配到的行同时写入新的文件 MYB111.SE.MATS.JC.txt
+
+head -n 1
+取文件的第一行（表头）。
+
+grep -w "gene:AT5G49330"
+精确匹配基因名 gene:AT5G49330 的行
+
+
+
+因为我的cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project路径里面有空格，rmats2sashimiplot.sif
+执行的时候会报错，所以整个拷贝alternative_differential_splicing文件夹到一个没空格路径下运行下面代码
+
+
+然后运行
+apptainer exec rmats2sashimiplot.sif /usr/local/bin/rmats2sashimiplot \
+    --b1 b1.txt \
+    --b2 b2.txt \
+    --event-type SE \
+    -e MYB111.SE.MATS.JC.txt \
+    --l1 WT \
+    --l2 cpl2-2 \
+    --exon_s 1 \
+    --intron_s 1 \
+    --group-info group.gf \
+    -o sashimiplotDir
+
+apptainer exec rmats2sashimiplot.sif
+在 rmats2sashimiplot 容器中执行命令，不用本机安装依赖
+
+--event-type SE				可变剪切事件类型，这里是 Skipped Exon。RI、A5SS、A3SS、MXE 等可选。
+-e MYB111.SE.MATS.JC.txt	事件文件，包含要绘制的基因 SE 事件。
+--l1 WT						对照组标签，用于图例。
+--l2 cpl2-2					处理组标签。
+--exon_s 1					外显子边界扩展大小（以 read length 单位），用于 sashimi plot。
+--intron_s 1				内含子边界扩展大小，用于 sashimi plot。
+--group-info group.gf		样本分组信息文件，告诉程序哪几个样本是 replicate。
+-o sashimiplotDir			输出目录。
+
+
+
+apptainer exec rmats2sashimiplot.sif /usr/local/bin/rmats2sashimiplot \
+    --b1 b1.txt \
+    --b2 b2.txt \
+    --event-type RI \
+    -e ADF5.RI.MATS.JC.txt \
+    --l1 WT \
+    --l2 cpl2-2 \
+    --exon_s 1 \
+    --intron_s 1 \
+    --group-info group.gf \
+    -o sashimiplotDir2
+
+唯一不同的是
+
+ --event-type RI，表示 Retained Intron 事件。
+
+输出文件夹改为sashimiplotDir2，不能和上面的相同
+
+事件文件改成 ADF5.RI.MATS.JC.txt。

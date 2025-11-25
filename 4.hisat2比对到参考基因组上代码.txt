@@ -1,0 +1,58 @@
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+
+
+ls
+mkdir bam
+
+conda activate rna-seq
+
+hisat2
+
+
+# 遍历所有 _1.clean.fq.gz文件
+for file in fastq/*_1.clean.fq.gz; do
+sample=$(basename "$file" _1.clean.fq.gz)    # 提取样本名，例如 cpl2-2_repl1和WT_repl1,去掉末尾的 _1
+
+
+
+比对到参考基因组上（运行时打开任务管理器，看看cpu和内存）很吃CPU，慢
+hisat2 --new-summary --threads 24 \
+    -x reference/At_name_hisat2 \
+        -1 "fastq/${sample}_1.clean.fq.gz" \
+        -2 "fastq/${sample}_2.clean.fq.gz" \
+        2> "logFiles/${sample}.ht2.log" \
+        | samtools sort -@ 24 -o "bam/${sample}.bam"
+done
+
+
+hisat2：运行 HISAT2 软件，进行 RNA-seq reads 对参考基因组的比对。
+--new-summary：使用新版汇总统计信息，会在标准错误输出中显示比对统计信息
+--threads 24：使用 24 个 CPU 线程并行计算，提高比对速度。
+\：表示命令未结束，下一行继续
+
+
+
+-x：指定 HISAT2 索引前缀。
+reference/At_name_hisat2：这是你之前用 hisat2-build 生成的索引前缀，HISAT2 会自动加载：
+
+
+        -1 "fastq/${sample}_1.clean.fq.gz" \
+-1：双端测序文件的 前向 reads (R1)。
+
+        -2 "fastq/${sample}_2.clean.fq.gz" \
+-2：双端测序文件的 反向 reads (R2)。
+这告诉 HISAT2 要进行 paired-end 比对
+
+
+
+2> "logFiles/${sample}.ht2.log" \
+2>：将 标准错误输出 (stderr) 重定向到文件。
+logFiles/*******.ht2.log：存放 HISAT2 的比对统计信息和日志。
+
+
+        | samtools sort -@ 24 -o "bam/${sample}.bam"
+|：管道，把 HISAT2 的 标准输出（SAM 文件） 传给 samtools sort。
+samtools sort：将 SAM/unsorted BAM 文件排序（按染色体位置排序），生成最终 BAM 文件。
+-@ 24：使用 24 个线程加快排序。
+"bam/${sample}.bam"：输出排序后的 BAM 文件到 bam/ 目录。
+

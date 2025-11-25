@@ -1,0 +1,9 @@
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+
+conda activate rna-seq
+
+
+python reference/genes_feature.py reference/Arabidopsis_thaliana.TAIR10.62.gff3
+
+
+

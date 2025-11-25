@@ -1,0 +1,96 @@
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project/sra
+
+ls
+
+
+# 文件路径
+tsv=/mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/filereport_read_run_PRJNA1043393_tsv.txt
+
+
+# 提取对应关系并执行重命名
+awk -F'\t' 'NR>1 {
+    run=$1;               # 第1列 SRR号
+    sample=$4;            # 第4列 样本名称
+    gsub(", ", "_", sample);
+    gsub(" ", "_", sample);
+    old=run"/"run".sra";
+    new=sample".sra";
+    print "mv "old" "new;
+}' $tsv | bash
+
+读取 TSV 文件（-F'\t' 表示以制表符分列）；
+从每一行中提取：
+$1 → SRR26895184
+$4 → cpl2-2, repl3
+把 “, ” 替换成 “_”，得到 cpl2-2_repl3；
+拼接出原始路径和新名字
+
+如何撤销重命名：
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project/sra
+
+
+awk -F'\t' 'NR>1 {
+    run=$1;
+    sample=$4;
+    gsub(", ", "_", sample);
+    gsub(" ", "_", sample);
+    old=sample".sra";
+    new=run"/"run".sra";
+    print "mkdir -p "run"; mv "old" "new;
+}' $tsv | bash
+
+
+
+ls sra
+
+
+
+
+mkdir fastq
+
+conda activate rna-seq
+
+fasterq-dump
+
+conda install -c bioconda sra-tools=2.11.0（可跳过，后面安装）
+
+
+
+
+
+
+
+转换sra到fastq格式
+fasterq-dump -p --split-3 -e 16 -m 64000 -O ./fastq ./sra/cpl2-2_repl1.sra
+-p（显示运行过程） --split-3（保证双端测序能够正常拆解成2个） -e 16（16个线程） -m 64000（CPU运行内存64G） -O（使文件能输出到fastq文件夹）
+./sra/cpl2-2_repl1.sra → 当前目录下 sra 文件夹里的 SRA 文件
+./fastq 当前目录文件夹里的fastq文件夹
+
+fasterq-dump -p --split-3 -e 16 -m 64000 -O ./fastq ./sra/cpl2-2_repl2.sra
+fasterq-dump -p --split-3 -e 16 -m 64000 -O ./fastq ./sra/cpl2-2_repl3.sra
+fasterq-dump -p --split-3 -e 16 -m 64000 -O ./fastq ./sra/WT_repl1.sra
+fasterq-dump -p --split-3 -e 16 -m 64000 -O ./fastq ./sra/WT_repl2.sra
+fasterq-dump -p --split-3 -e 16 -m 64000 -O ./fastq ./sra/WT_repl3.sra
+
+cd fastq
+ls -lh（查看文件和大小）
+
+cd ..（回到上一目录）
+
+mkdir qc
+
+fastqc -h（查看QC用法）
+
+fastqc -t 12 -O qc fastq/*.fastq
+使用 FastQC 对目录 fastq/ 下的所有 .fastq 文件进行质量评估，并把结果输出到 qc/ 目录。
+
+检查qc目录下的html文件，挨个打开
+主要观察：1.summary下除	Per base sequence content
+						Per sequence GC content
+						Sequence Duplication Levels（用于基因组分析，不适用于转录组重复性）
+						Overrepresented sequences
+之外其他是绿色
+adapter contenet指是否有接头污染，需进一步处理
+2.Basic Statistics里面Encoding	Sanger / Illumina 1.9（具体查看一下）
+							total sequences  20M可用于转录组分析，50M才可用于可变剪切分析
+											20后面6个零，million

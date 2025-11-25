@@ -1,0 +1,28 @@
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+
+
+ls
+
+ls fastq
+
+ls reference
+
+cd reference
+解压 
+gunzip Arabidopsis_thaliana.TAIR10.62.gff3.gz
+
+gunzip Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.gz
+
+下载GFF3到GTF文件转换工具
+conda install -c bioconda gffread -y
+
+gffread Arabidopsis_thaliana.TAIR10.62.gff3 -T -o Arabidopsis_thaliana.TAIR10.62.gtf
+
+conda activate rna-seq
+提取剪切位点和外显子信息
+hisat2_extract_splice_sites.py Arabidopsis_thaliana.TAIR10.62.gtf > ss.txt
+hisat2_extract_exons.py Arabidopsis_thaliana.TAIR10.62.gtf > exons.txt
+
+
+使用提取文件建立hisat2索引
+hisat2-build -p 12 --ss ss.txt --exon exons.txt \Arabidopsis_thaliana.TAIR10.dna.toplevel.fa At_name_hisat2（name输出文件名）

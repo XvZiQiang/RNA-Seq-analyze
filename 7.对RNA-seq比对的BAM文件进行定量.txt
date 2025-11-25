@@ -1,0 +1,112 @@
+cd /mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq/rna-seq-project
+conda activate rna-seq
+
+ls
+
+ls bam
+
+
+# 遍历 bam 目录下所有 bam 文件，并提取文件名为sample，导出{sample}.sorted.bam，24是线程数
+for bamfile in bam/*.bam; do
+    sample=$(basename "$bamfile" .bam)
+    # 排序 BAM
+    samtools sort -@ 24 -o bam/${sample}.sorted.bam "$bamfile"
+
+mkdir counts
+
+#单独取一个样本.sorted.bam文件，看一下是否正确生成 reads-to-gene BAM，单线程
+featureCounts -a reference/Arabidopsis_thaliana.TAIR10.62.gtf \
+-t exon -g gene_id \
+-Q 10 --primary -s 0 -F gtf -p -T 1 \
+-o counts/debug.txt \
+-R BAM bam/WT_repl1.sorted.bam
+
+
+检查重复计数
+samtools view counts/WT_repl1.sorted.bam.featureCounts.bam | cut -f1 | sort | uniq -c | sort -nr | head
+
+
+samtools view → 查看 BAM 内容
+cut -f1 → 提取 read 名称
+sort | uniq -c → 统计每条 read 出现次数
+sort -nr → 按次数从大到小排序
+head → 查看出现次数最多的几条 read
+
+
+说明错误，重复计算了reads
+
+
+
+
+
+
+
+
+
+根据参考基因组GTF文件和{sample}.sorted.bam文件导出基因表达量
+featureCounts -a reference/Arabidopsis_thaliana.TAIR10.62.gtf -t exon -Q 10 --countReadPairs --primary -s 0 -F gtf -g gene_id -p -T 24 -o counts/expr_matrix.txt bam/*.sorted.bam
+
+
+根据参考基因组GTF文件导出基因表达量
+
+
+featureCounts
+👉 来自 Subread 软件包的命令，用于统计 BAM 文件中每个基因的 reads 数量（即 基因表达定量）
+
+-a reference/Arabidopsis_thaliana.TAIR10.62.gtf
+👉 指定注释文件
+
+-t exon
+指定外显子，指定要计数的 feature 类型
+
+-Q 10
+设置 最小比对质量（mapping quality）阈值为 10。比对质量低于 10 的 reads 会被丢弃。这能排除那些比对到多个位置或错误比对的 reads。
+
+--countReadPairs
+必须加上，否则表达量会翻倍，和-p一起发挥作用；对 paired-end 数据，每对 reads（read1 + read2）只计作 一个单位。
+相当于告诉 featureCounts：“这两个 mate 属于同一分子，不要算两次。”
+
+--primary
+强制读取主体部分；如果 reads 比对到多个位置，只有一个是 primary。这个参数能有效防止重复计数
+
+-s 0
+默认链，不区分链特异性（unstranded）。-s 0：不区分正负链；-s 1：链特异正链；-s 2：链特异负链
+
+-F gtf
+👉 指定注释文件的格式为 GTF（而不是 GFF）
+
+-g gene_id
+👉 告诉 featureCounts 用注释文件中哪个字段来区分不同基因。
+
+-p
+👉 表示这是 双端测序数据（paired-end）。
+启用 paired-end 模式。
+这告诉 featureCounts 输入文件是成对的 reads。
+它会检查 read1/read2 是否都比对成功、是否合理配对。
+💡 注意：-p 必须配合 --countReadPairs，否则每个 mate 会计两次。
+
+-T 24
+👉 使用 24 个线程 加速计数过程（多核 CPU 并行）
+
+-o counts/expr_matrix.txt
+👉 输出文件路径与名称
+
+bam/*.sorted.bam
+👉 输入所有比对后的 BAM 文件。也就是你前面生成的多个样本
+
+
+ls
+
+打开检查文件
+less -S counts/expr_matrix.txt          less：分页显示文本内容。-S：关闭自动换行（防止长行被折叠到下一行，横向滚动查看）。
+：输入q退出
+
+expr_matrix.txt是表达量
+
+less -S counts/expr_matrix.txt.summary
+输入q退出
+
+expr_matrix.txt.summary里是reads分布情况
+
+
+
