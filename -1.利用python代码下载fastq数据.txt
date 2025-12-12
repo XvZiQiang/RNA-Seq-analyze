@@ -1,0 +1,100 @@
+查看网盘空间大小
+df -h
+
+目录
+/mnt/c/Users/XZQ/Desktop/NCBI
+
+ls
+
+cd Plant\ communications_RNA_seq
+
+
+创建一个文件夹
+(-p: 是一个选项（参数），它的作用是：如果父目录不存在，则一并创建所需的父目录（在这个简单例子中效果不明显）。
+如果目录已经存在，不会报错。这是一个非常实用的功能，可以确保脚本在重复运行时不会因为目录已存在而中断。)
+mkdir -p rna-seq-project
+
+cd rna-seq-project
+
+创建一个参考基因组文件夹
+mkdir -p reference
+
+cd reference
+
+检查是否安装wget
+which wget
+
+下载全基因组序列
+(-c (选项):这是 --continue 的简写，是这条命令中最有用的功能之一。作用：启用断点续传。
+如果下载过程因为网络中断、连接超时等原因被中断，您只需要重新运行完全相同的命令，wget 就会自动从上次中断的地方继续下载，而不是从头开始重新下载整个文件。这对于下载大型基因组文件至关重要。)
+wget -c https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-62/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.dna.toplevel.fa.gz
+
+
+
+
+下载cDNA文件
+wget -c https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-62/fasta/arabidopsis_thaliana/cdna/Arabidopsis_thaliana.TAIR10.cdna.all.fa.gz
+
+下载GFF3文件
+wget -c https://ftp.ensemblgenomes.ebi.ac.uk/pub/plants/release-62/gff3/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.62.gff3.gz
+
+
+退出Ubuntu重新打开
+
+启动RNA-seq分析环境
+conda activate rna-seq
+
+查看是否存在prefetch软件
+which prefetch
+
+下载aspera加速下载软件
+wget -c https://d3gcli72yxqn2z.cloudfront.net/downloads/connect/latest/bin/ibm-aspera-connect_4.2.17.893-HEAD_linux_x86_64.tar.gz
+
+解压aspera压缩包
+tar xf ibm-aspera-connect_4.2.17.893-HEAD_linux_x86_64.tar.gz
+
+安装压缩包
+./ibm-aspera-connect_4.2.17.893-HEAD_linux_x86_64.sh
+
+
+
+
+
+
+
+/mnt/c/Users/XZQ/Desktop/NCBI/Plant\ communications_RNA_seq
+
+
+cd rna-seq-project
+
+
+新建文件夹sra
+mkdir -p sra
+
+
+python代码在：-1.python-fastq一键下载代码.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
