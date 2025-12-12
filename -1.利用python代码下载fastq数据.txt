@@ -73,6 +73,7 @@ mkdir -p sra
 
 
 python代码在：-1.python-fastq一键下载代码.py
+（视频中为SRA下载代码，这里改个名字）
 
 
 
